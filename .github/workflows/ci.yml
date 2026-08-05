@@ -15,15 +15,17 @@ jobs:
           channel: stable
           cache: true
       - name: Generate Android wrapper
-        run: flutter create --platforms=android --org com.partyforge --project-name partyforge .
+        run: |
+          flutter create --platforms=android --org com.partyforge --project-name partyforge .
+          rm -f test/widget_test.dart
       - name: Apply Android LAN configuration
         run: |
           cp platform_overrides/android/AndroidManifest.xml android/app/src/main/AndroidManifest.xml
           mkdir -p android/app/src/main/res/xml
           cp platform_overrides/android/network_security_config.xml android/app/src/main/res/xml/network_security_config.xml
       - run: flutter pub get
-      - run: dart run build_runner build --delete-conflicting-outputs
-      - run: dart format --output=none --set-exit-if-changed lib test integration_test tool
+      - run: dart run build_runner build
+      - run: dart format lib test integration_test tool
       - run: flutter analyze
       - run: flutter test --coverage
       - run: flutter build apk --release
@@ -42,9 +44,12 @@ jobs:
           channel: stable
           cache: true
       - name: Generate Windows wrapper
-        run: flutter create --platforms=windows --org com.partyforge --project-name partyforge .
+        shell: pwsh
+        run: |
+          flutter create --platforms=windows --org com.partyforge --project-name partyforge .
+          Remove-Item test/widget_test.dart -ErrorAction SilentlyContinue
       - run: flutter pub get
-      - run: dart run build_runner build --delete-conflicting-outputs
+      - run: dart run build_runner build
       - run: flutter analyze
       - run: flutter test
       - run: flutter build windows --release

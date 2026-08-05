@@ -2,10 +2,14 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:partyforge/games/shadow_path/domain/shadow_path.dart';
 
 void main() {
-  const board = ShadowPathBoard(
+  final board = ShadowPathBoard(
     width: 4,
     height: 3,
-    cells: {GridPosition(3, 1): GridCell.goal, GridPosition(1, 2): GridCell.trap, GridPosition(2, 0): GridCell.wall},
+    cells: {
+      const GridPosition(3, 1): GridCell.goal,
+      const GridPosition(1, 2): GridCell.trap,
+      const GridPosition(2, 0): GridCell.wall,
+    },
   );
 
   test('same-cell collision eliminates both', () {

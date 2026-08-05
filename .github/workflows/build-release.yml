@@ -26,7 +26,9 @@ jobs:
           cache: true
 
       - name: Generate Android wrapper
-        run: flutter create --platforms=android --org com.partyforge --project-name partyforge .
+        run: |
+          flutter create --platforms=android --org com.partyforge --project-name partyforge .
+          rm -f test/widget_test.dart
 
       - name: Apply Android LAN configuration
         run: |
@@ -38,7 +40,7 @@ jobs:
         run: flutter pub get
 
       - name: Generate source files
-        run: dart run build_runner build --delete-conflicting-outputs
+        run: dart run build_runner build
 
       - name: Analyze
         run: flutter analyze
@@ -81,13 +83,16 @@ jobs:
         run: flutter config --enable-windows-desktop
 
       - name: Generate Windows wrapper
-        run: flutter create --platforms=windows --org com.partyforge --project-name partyforge .
+        shell: pwsh
+        run: |
+          flutter create --platforms=windows --org com.partyforge --project-name partyforge .
+          Remove-Item test/widget_test.dart -ErrorAction SilentlyContinue
 
       - name: Resolve dependencies
         run: flutter pub get
 
       - name: Generate source files
-        run: dart run build_runner build --delete-conflicting-outputs
+        run: dart run build_runner build
 
       - name: Analyze
         run: flutter analyze

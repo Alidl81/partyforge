@@ -32,7 +32,7 @@ final class AppDatabase extends GeneratedDatabase {
   @override
   MigrationStrategy get migration => MigrationStrategy(
     onCreate: (_) => _createSchema(),
-    onUpgrade: (_, from, __) async {
+    onUpgrade: (_, from, _) async {
       if (from < 1) await _createSchema();
     },
     beforeOpen: (_) async => customStatement('PRAGMA foreign_keys = ON'),

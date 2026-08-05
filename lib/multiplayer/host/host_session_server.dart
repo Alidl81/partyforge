@@ -26,13 +26,21 @@ final class HostSessionInfo {
 }
 
 final class HostSessionServer {
-  HostSessionServer({
+  factory HostSessionServer({
     required AppLogger logger,
     TokenService? tokens,
     bool developmentAddressOverride = false,
-  }) : _logger = logger,
-       _tokens = tokens ?? TokenService(),
-       _developmentAddressOverride = developmentAddressOverride;
+  }) => HostSessionServer._(
+    logger,
+    tokens ?? TokenService(),
+    developmentAddressOverride,
+  );
+
+  HostSessionServer._(
+    this._logger,
+    this._tokens,
+    this._developmentAddressOverride,
+  );
 
   static const protocolVersion = 1;
 
@@ -140,8 +148,7 @@ final class HostSessionServer {
 
     final socket = await WebSocketTransformer.upgrade(request);
     _sockets.add(socket);
-    late final StreamSubscription<dynamic> subscription;
-    subscription = socket.listen(
+    _socketSubscriptions[socket] = socket.listen(
       (data) => _handleSocketMessage(socket, data),
       onDone: () {
         _socketSubscriptions.remove(socket);
@@ -157,7 +164,6 @@ final class HostSessionServer {
         _logger.error('host.socket', error, stack);
       },
     );
-    _socketSubscriptions[socket] = subscription;
   }
 
   void _handleSocketMessage(WebSocket socket, Object? data) {
