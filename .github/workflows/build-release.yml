@@ -1,0 +1,117 @@
+name: Build PartyForge
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+
+jobs:
+  android:
+    name: Android APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.44.7'
+          channel: stable
+          cache: true
+
+      - name: Generate Android wrapper
+        run: flutter create --platforms=android --org com.partyforge --project-name partyforge .
+
+      - name: Apply Android LAN configuration
+        run: |
+          cp platform_overrides/android/AndroidManifest.xml android/app/src/main/AndroidManifest.xml
+          mkdir -p android/app/src/main/res/xml
+          cp platform_overrides/android/network_security_config.xml android/app/src/main/res/xml/network_security_config.xml
+
+      - name: Resolve dependencies
+        run: flutter pub get
+
+      - name: Generate source files
+        run: dart run build_runner build --delete-conflicting-outputs
+
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Test
+        run: flutter test
+
+      - name: Build release APK
+        run: flutter build apk --release
+
+      - name: Create checksum
+        shell: bash
+        run: sha256sum build/app/outputs/flutter-apk/app-release.apk > build/app/outputs/flutter-apk/app-release.apk.sha256
+
+      - name: Upload Android artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: partyforge-android-apk
+          if-no-files-found: error
+          path: |
+            build/app/outputs/flutter-apk/app-release.apk
+            build/app/outputs/flutter-apk/app-release.apk.sha256
+
+  windows:
+    name: Windows x64
+    runs-on: windows-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.44.7'
+          channel: stable
+          cache: true
+
+      - name: Enable Windows desktop
+        run: flutter config --enable-windows-desktop
+
+      - name: Generate Windows wrapper
+        run: flutter create --platforms=windows --org com.partyforge --project-name partyforge .
+
+      - name: Resolve dependencies
+        run: flutter pub get
+
+      - name: Generate source files
+        run: dart run build_runner build --delete-conflicting-outputs
+
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Test
+        run: flutter test
+
+      - name: Build Windows release
+        run: flutter build windows --release
+
+      - name: Package Windows application
+        shell: pwsh
+        run: |
+          $source = 'build/windows/x64/runner/Release'
+          $zip = 'build/partyforge-windows-x64.zip'
+          Compress-Archive -Path "$source/*" -DestinationPath $zip -Force
+          (Get-FileHash $zip -Algorithm SHA256).Hash.ToLower() + '  partyforge-windows-x64.zip' |
+            Set-Content 'build/partyforge-windows-x64.zip.sha256'
+
+      - name: Upload Windows artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: partyforge-windows-x64
+          if-no-files-found: error
+          path: |
+            build/partyforge-windows-x64.zip
+            build/partyforge-windows-x64.zip.sha256

@@ -1,0 +1,16 @@
+include: package:flutter_lints/flutter.yaml
+
+analyzer:
+  exclude:
+    - build/**
+    - lib/**/*.g.dart
+    - lib/**/*.freezed.dart
+  errors:
+    invalid_use_of_visible_for_testing_member: error
+    invalid_use_of_protected_member: error
+
+linter:
+  rules:
+    avoid_print: true
+    cancel_subscriptions: true
+    close_sinks: true
