@@ -167,6 +167,15 @@ final class LanSessionClient {
         if (estimate != null) _clockEstimates.add(estimate);
       }
     }
+    final isAuthoritativeBaseline =
+        envelope.type == ProtocolTypes.reconnected ||
+        envelope.type == ProtocolTypes.stateSnapshot;
+    if (isAuthoritativeBaseline) {
+      _hostSequences.resetFromSnapshot(envelope.sequence);
+      _messages.add(envelope);
+      return;
+    }
+
     switch (_hostSequences.accept(envelope.sequence)) {
       case SequenceStatus.accepted:
         _messages.add(envelope);
