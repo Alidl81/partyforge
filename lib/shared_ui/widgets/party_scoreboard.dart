@@ -11,7 +11,7 @@ class PartyScoreboard extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListView.separated(
       itemCount: scores.length,
-      separatorBuilder: (_, _) => const SizedBox(height: 8),
+      separatorBuilder: (context, index) => const SizedBox(height: 8),
       itemBuilder: (context, index) {
         final score = scores[index];
         return ListTile(

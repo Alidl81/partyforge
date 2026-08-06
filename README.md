@@ -62,6 +62,13 @@ flutter build windows --release
 
 The Windows command must run on Windows. Android signing secrets must be supplied outside the repository.
 
+
+## جریان رابط کاربری
+
+صفحهٔ خانه فقط گزینهٔ اصلی «بازی» و بخش‌های چندنفره، پروفایل و عیب‌یابی را نمایش می‌دهد. با انتخاب «بازی»، فهرست ۱۲ بازی باز می‌شود. هر کارت دارای تصویر، دکمهٔ شروع/اتصال و دکمهٔ اطلاعات است. تمام صفحه‌های غیرریشه دکمهٔ بازگشت قابل‌مشاهده و مسیر بازگشت امن دارند.
+
+بازی‌های محلی قابل‌اجرا در این نسخه: Chrono Lock، Hidden Fuse، Ghost Trace، Word Forge، Memory Grid، Color Clash، Number Rush و Tap Storm.
+
 ## Architecture
 
 ```text

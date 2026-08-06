@@ -1,7 +1,7 @@
 name: partyforge
 description: Deterministic offline and LAN party games for Android and Windows.
 publish_to: none
-version: 0.1.0+1
+version: 0.2.0+2
 
 environment:
   sdk: '>=3.12.0 <4.0.0'
@@ -42,3 +42,15 @@ flutter:
   uses-material-design: true
   assets:
     - assets/dictionaries/fa_words.txt
+    - assets/game_art/chrono_lock.png
+    - assets/game_art/hidden_fuse.png
+    - assets/game_art/signal_snap.png
+    - assets/game_art/ghost_trace.png
+    - assets/game_art/word_forge.png
+    - assets/game_art/shadow_path.png
+    - assets/game_art/sketch_imposter.png
+    - assets/game_art/split_control.png
+    - assets/game_art/memory_grid.png
+    - assets/game_art/color_clash.png
+    - assets/game_art/number_rush.png
+    - assets/game_art/tap_storm.png

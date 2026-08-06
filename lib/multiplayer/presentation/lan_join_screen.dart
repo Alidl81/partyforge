@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../shared_ui/widgets/party_scaffold.dart';
 import '../client/lan_session_client.dart';
 import '../protocol/protocol_envelope.dart';
 
@@ -137,7 +138,11 @@ class _LanJoinScreenState extends State<LanJoinScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('پیوستن به اتاق')),
+      appBar: AppBar(
+        automaticallyImplyLeading: false,
+        leading: const PartyBackButton(fallbackLocation: '/multiplayer'),
+        title: const Text('پیوستن به اتاق'),
+      ),
       body: Form(
         key: _formKey,
         child: ListView(

@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/logging/app_logger.dart';
 import '../discovery/lan_address_service.dart';
+import '../../shared_ui/widgets/party_scaffold.dart';
 import '../host/host_session_server.dart';
 
 class LanHostScreen extends ConsumerStatefulWidget {
@@ -49,7 +50,11 @@ class _LanHostScreenState extends ConsumerState<LanHostScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('ایجاد اتاق LAN')),
+      appBar: AppBar(
+        automaticallyImplyLeading: false,
+        leading: const PartyBackButton(fallbackLocation: '/multiplayer'),
+        title: const Text('ایجاد اتاق LAN'),
+      ),
       body: FutureBuilder<_HostViewData>(
         future: _startup,
         builder: (context, snapshot) {

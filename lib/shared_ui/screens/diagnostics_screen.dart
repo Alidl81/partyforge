@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/device_capabilities/device_capabilities.dart';
+import '../widgets/party_scaffold.dart';
 
 class DiagnosticsScreen extends ConsumerWidget {
   const DiagnosticsScreen({super.key});
@@ -19,7 +20,11 @@ class DiagnosticsScreen extends ConsumerWidget {
       'شبکهٔ محلی': c.localNetwork,
     };
     return Scaffold(
-      appBar: AppBar(title: const Text('عیب‌یابی')),
+      appBar: AppBar(
+        automaticallyImplyLeading: false,
+        leading: const PartyBackButton(fallbackLocation: '/'),
+        title: const Text('عیب‌یابی'),
+      ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: entries.entries.map((entry) => ListTile(

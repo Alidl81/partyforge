@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../application/chrono_lock_controller.dart';
 import '../domain/chrono_lock.dart';
+import '../../../shared_ui/widgets/party_scaffold.dart';
 import '../engine/chrono_lock_flame_game.dart';
 
 class ChronoLockScreen extends ConsumerStatefulWidget {
@@ -32,7 +33,11 @@ class _ChronoLockScreenState extends ConsumerState<ChronoLockScreen> {
     final targetSeconds = state.targetUs / 1000000;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('قفل زمان')),
+      appBar: AppBar(
+        automaticallyImplyLeading: false,
+        leading: const PartyBackButton(fallbackLocation: '/play'),
+        title: const Text('قفل زمان'),
+      ),
       body: Stack(
         children: [
           Positioned.fill(

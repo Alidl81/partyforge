@@ -6,6 +6,7 @@ import 'package:uuid/uuid.dart';
 
 import '../../core/domain/player/player_profile.dart';
 import '../../data/repositories/repository_providers.dart';
+import '../widgets/party_scaffold.dart';
 
 final profilesProvider = StreamProvider.autoDispose<List<PlayerProfile>>(
   (ref) => ref.watch(playerRepositoryProvider).watchAll(),
@@ -18,7 +19,11 @@ class ProfilesScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final profiles = ref.watch(profilesProvider);
     return Scaffold(
-      appBar: AppBar(title: const Text('پروفایل‌ها')),
+      appBar: AppBar(
+        automaticallyImplyLeading: false,
+        leading: const PartyBackButton(fallbackLocation: '/'),
+        title: const Text('پروفایل‌ها'),
+      ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _create(context, ref),
         icon: const Icon(Icons.person_add),
@@ -30,7 +35,7 @@ class ProfilesScreen extends ConsumerWidget {
             : ListView.separated(
                 padding: const EdgeInsets.all(16),
                 itemCount: items.length,
-                separatorBuilder: (_, _) => const SizedBox(height: 8),
+                separatorBuilder: (context, index) => const SizedBox(height: 8),
                 itemBuilder: (_, index) {
                   final item = items[index];
                   return ListTile(
