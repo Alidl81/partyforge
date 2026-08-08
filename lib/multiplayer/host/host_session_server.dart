@@ -1,10 +1,13 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
 
 import 'package:uuid/uuid.dart';
 
 import '../../core/logging/app_logger.dart';
+import '../discovery/lan_room.dart';
+import '../discovery/lan_room_broadcaster.dart';
 import '../protocol/message_guard.dart';
 import '../protocol/protocol_envelope.dart';
 import '../reconnect/reconnect_registry.dart';
@@ -17,12 +20,14 @@ final class HostSessionInfo {
     required this.sessionCode,
     required this.joinToken,
     required this.port,
+    required this.roomName,
   });
 
   final String sessionId;
   final String sessionCode;
   final ExpiringToken joinToken;
   final int port;
+  final String roomName;
 }
 
 final class HostSessionServer {
@@ -30,16 +35,19 @@ final class HostSessionServer {
     required AppLogger logger,
     TokenService? tokens,
     bool developmentAddressOverride = false,
+    String roomName = 'اتاق PartyForge',
   }) => HostSessionServer._(
     logger,
     tokens ?? TokenService(),
     developmentAddressOverride,
+    roomName.trim().isEmpty ? 'اتاق PartyForge' : roomName.trim(),
   );
 
   HostSessionServer._(
     this._logger,
     this._tokens,
     this._developmentAddressOverride,
+    this._roomName,
   );
 
   static const protocolVersion = 1;
@@ -47,6 +55,7 @@ final class HostSessionServer {
   final AppLogger _logger;
   final TokenService _tokens;
   final bool _developmentAddressOverride;
+  final String _roomName;
   final Set<WebSocket> _sockets = {};
   final Map<WebSocket, StreamSubscription<dynamic>> _socketSubscriptions = {};
   final Map<WebSocket, String> _socketPlayers = {};
@@ -55,48 +64,87 @@ final class HostSessionServer {
   final Map<String, bool> _playerReady = {};
   final Stopwatch _clock = Stopwatch()..start();
   final ReconnectRegistry _reconnect = ReconnectRegistry();
+  final StreamController<List<Map<String, Object?>>> _lobbyController =
+      StreamController<List<Map<String, Object?>>>.broadcast();
 
   HttpServer? _server;
   StreamSubscription<HttpRequest>? _httpSubscription;
+  LanRoomBroadcaster? _broadcaster;
   late final String _sessionId;
   late final String _sessionCode;
   late final ExpiringToken _joinToken;
   late final MessageGuard _guard;
   final Map<String, int> _hostSequenceByPlayer = {};
   final Map<WebSocket, int> _hostSequenceBySocket = {};
+  bool _closed = false;
+
+  Stream<List<Map<String, Object?>>> get lobbyChanges =>
+      _lobbyController.stream;
+
+  List<Map<String, Object?>> get currentLobbyPlayers => _lobbyPlayers();
+
+  int get playerCount => _socketPlayers.values.toSet().length;
 
   Future<HostSessionInfo> start({InternetAddress? address}) async {
     if (_server != null) throw StateError('Server already started.');
+    if (_closed) throw StateError('Server is already closed.');
     _sessionId = const Uuid().v4();
+    _sessionCode = (100000 + Random.secure().nextInt(900000)).toString();
+    _joinToken = _tokens.issue(lifetime: const Duration(hours: 8));
     _guard = MessageGuard(
       protocolVersion: protocolVersion,
       sessionId: _sessionId,
     );
-    _server = await HttpServer.bind(
-      address ?? InternetAddress.anyIPv4,
-      0,
-      shared: false,
-    );
-    _sessionCode = (_server!.port * 7919 % 1000000).toString().padLeft(6, '0');
-    _joinToken = _tokens.issue();
+
+    final bindAddress = address ?? InternetAddress.anyIPv4;
+    try {
+      _server = await HttpServer.bind(
+        bindAddress,
+        LanDiscoveryProtocol.defaultHostPort,
+        shared: false,
+      );
+    } on SocketException {
+      _server = await HttpServer.bind(bindAddress, 0, shared: false);
+    }
+
     _httpSubscription = _server!.listen(
       _handleRequest,
       onError: (Object error, StackTrace stack) =>
           _logger.error('host.http', error, stack),
     );
-    _logger.info('host.started', {
-      'sessionId': _sessionId,
-      'port': _server!.port,
-    });
-    return HostSessionInfo(
+
+    final info = HostSessionInfo(
       sessionId: _sessionId,
       sessionCode: _sessionCode,
       joinToken: _joinToken,
       port: _server!.port,
+      roomName: _roomName,
     );
+    final broadcaster = LanRoomBroadcaster(
+      room: (address) => _roomAdvertisement(address),
+    );
+    _broadcaster = broadcaster;
+    try {
+      await broadcaster.start();
+    } on Object catch (error, stack) {
+      _logger.warning('host.discovery.unavailable', {'error': '$error'});
+      _logger.debug('host.discovery.stack', {'stack': '$stack'});
+    }
+
+    _logger.info('host.started', {
+      'sessionId': _sessionId,
+      'port': _server!.port,
+      'roomName': _roomName,
+    });
+    _publishLobby();
+    return info;
   }
 
   Future<void> close() async {
+    if (_closed) return;
+    _closed = true;
+    await _broadcaster?.close();
+    _broadcaster = null;
     await _httpSubscription?.cancel();
     _httpSubscription = null;
 
@@ -118,6 +166,7 @@ final class HostSessionServer {
     _playerNames.clear();
     _playerReady.clear();
     _server = null;
+    await _lobbyController.close();
   }
 
   Future<void> _handleRequest(HttpRequest request) async {
@@ -133,10 +182,14 @@ final class HostSessionServer {
     }
 
     if (request.uri.path == '/health') {
+      final response = <String, Object?>{
+        'ok': true,
+        ..._roomAdvertisement(remote).toAnnouncementJson(),
+      };
       request.response
         ..statusCode = HttpStatus.ok
         ..headers.contentType = ContentType.json
-        ..write(jsonEncode({'ok': true, 'sessionId': _sessionId}));
+        ..write(jsonEncode(response));
       await request.response.close();
       return;
     }
@@ -150,20 +203,20 @@ final class HostSessionServer {
     _sockets.add(socket);
     _socketSubscriptions[socket] = socket.listen(
       (data) => _handleSocketMessage(socket, data),
-      onDone: () {
-        _socketSubscriptions.remove(socket);
-        _socketPlayers.remove(socket);
-        _hostSequenceBySocket.remove(socket);
-        _sockets.remove(socket);
-      },
+      onDone: () => _removeSocket(socket),
       onError: (Object error, StackTrace stack) {
-        _socketSubscriptions.remove(socket);
-        _socketPlayers.remove(socket);
-        _hostSequenceBySocket.remove(socket);
-        _sockets.remove(socket);
+        _removeSocket(socket);
         _logger.error('host.socket', error, stack);
       },
     );
+  }
+
+  void _removeSocket(WebSocket socket) {
+    _socketSubscriptions.remove(socket);
+    _socketPlayers.remove(socket);
+    _hostSequenceBySocket.remove(socket);
+    _sockets.remove(socket);
+    _publishLobby();
   }
 
   void _handleSocketMessage(WebSocket socket, Object? data) {
@@ -212,6 +265,7 @@ final class HostSessionServer {
         _playerNames[playerId] = envelope.payload['displayName'] as String;
         _playerReady[playerId] = false;
         _socketPlayers[socket] = playerId;
+        _publishLobby();
       }
 
       switch (envelope.type) {
@@ -254,6 +308,7 @@ final class HostSessionServer {
             return;
           }
           _playerReady[envelope.playerId!] = ready;
+          _publishLobby();
           _broadcast(
             ProtocolTypes.lobbySnapshot,
             {'players': _lobbyPlayers()},
@@ -267,6 +322,7 @@ final class HostSessionServer {
             _playerReady.remove(leavingPlayer);
             _reconnect.revokePlayer(leavingPlayer);
             _socketPlayers.remove(socket);
+            _publishLobby();
             _broadcast(
               ProtocolTypes.lobbySnapshot,
               {'players': _lobbyPlayers()},
@@ -285,6 +341,7 @@ final class HostSessionServer {
             record.playerId,
             envelope.sequence,
           );
+          _publishLobby();
           _send(
             socket,
             ProtocolTypes.reconnected,
@@ -321,18 +378,37 @@ final class HostSessionServer {
         displayName.runes.length <= 24;
   }
 
+  LanRoom _roomAdvertisement(InternetAddress address) => LanRoom(
+    address: address,
+    port: _server!.port,
+    sessionId: _sessionId,
+    sessionCode: _sessionCode,
+    joinToken: _joinToken.value,
+    roomName: _roomName,
+    playerCount: playerCount,
+    tokenExpiresAt: _joinToken.expiresAt,
+    lastSeenAt: DateTime.now(),
+  );
+
   List<Map<String, Object?>> _lobbyPlayers() => _players
       .map(
         (id) => <String, Object?>{
           'playerId': id,
-          'displayName': _playerNames[id] ?? 'Player',
+          'displayName': _playerNames[id] ?? 'بازیکن',
           'ready': _playerReady[id] ?? false,
+          'connected': _socketPlayers.containsValue(id),
         },
       )
       .toList(growable: false);
 
+  void _publishLobby() {
+    if (!_lobbyController.isClosed) {
+      _lobbyController.add(_lobbyPlayers());
+    }
+  }
+
   void _broadcast(String type, Map<String, Object?> payload) {
-    for (final socket in _sockets) {
+    for (final socket in _sockets.toList(growable: false)) {
       _send(socket, type, null, payload);
     }
   }

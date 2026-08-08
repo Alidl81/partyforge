@@ -1,11 +1,13 @@
 # Changelog
 
-## 0.1.0
+## 0.3.0+3
 
-- Added deterministic domain architecture and seeded random generator.
-- Added playable Chrono Lock local flow.
-- Added rule engines and tests for Hidden Fuse, Signal Snap, Ghost Trace, Word Forge, and Shadow Path.
-- Added SQLite profile persistence, LAN protocol primitives, clock sync, security policy, CI, and architecture documentation.
+- Replaced the six-field LAN join form with automatic nearby-room discovery.
+- Added UDP room announcements plus fixed-port subnet probing as a fallback.
+- Added one-tap room joining with a prefilled player name.
+- Added host and client lobby feedback, connected-player lists, and clearer errors.
+- Extended join credentials from two minutes to eight hours for real party sessions.
+- Kept code/IP entry under an optional advanced section.
 
 ## 0.2.0 - Game catalog and navigation redesign
 
@@ -17,3 +19,10 @@
 - Added playable local presentation for Hidden Fuse, Ghost Trace, and Word Forge.
 - Expanded the catalog to 12 local and LAN games.
 - Added deterministic unit tests for the new games and navigation widget tests.
+
+## 0.1.0
+
+- Added deterministic domain architecture and seeded random generator.
+- Added playable Chrono Lock local flow.
+- Added rule engines and tests for Hidden Fuse, Signal Snap, Ghost Trace, Word Forge, and Shadow Path.
+- Added SQLite profile persistence, LAN protocol primitives, clock sync, security policy, CI, and architecture documentation.

@@ -19,28 +19,28 @@ class MultiplayerScreen extends StatelessWidget {
             shrinkWrap: true,
             children: [
               Text(
-                'همه روی یک شبکه، بدون اینترنت',
+                'سریع وصل شوید و بازی کنید',
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.headlineMedium,
               ),
               const SizedBox(height: 10),
               const Text(
-                'یک دستگاه میزبان می‌شود و بقیه با IP، کد جلسه و Token موقت وارد می‌شوند.',
+                'یک نفر اتاق می‌سازد و بقیه روی همان Wi-Fi یا هات‌اسپات، اتاق را خودکار پیدا می‌کنند.',
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 28),
               _NetworkActionCard(
                 icon: Icons.router_rounded,
-                title: 'ساخت اتاق LAN',
-                description: 'این دستگاه Host می‌شود و اطلاعات اتصال را نمایش می‌دهد.',
-                buttonLabel: 'ایجاد اتاق',
+                title: 'ساخت اتاق',
+                description: 'اتاق را بساز؛ بقیه بدون وارد کردن اطلاعات فنی آن را می‌بینند.',
+                buttonLabel: 'ساخت اتاق',
                 onPressed: () => context.push('/lan/host'),
               ),
               const SizedBox(height: 16),
               _NetworkActionCard(
                 icon: Icons.login_rounded,
                 title: 'پیوستن به اتاق',
-                description: 'با اطلاعاتی که میزبان نمایش می‌دهد به Lobby وصل شو.',
+                description: 'اتاق‌های نزدیک را ببین و با یک لمس وارد شو.',
                 buttonLabel: 'ورود به اتاق',
                 onPressed: () => context.push('/lan/join'),
               ),
@@ -78,23 +78,53 @@ class _NetworkActionCard extends StatelessWidget {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(22),
-        child: Row(
-          children: [
-            CircleAvatar(radius: 34, child: Icon(icon, size: 34)),
-            const SizedBox(width: 18),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final compact = constraints.maxWidth < 520;
+            final details = Column(
+              crossAxisAlignment: compact
+                  ? CrossAxisAlignment.center
+                  : CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  textAlign: compact ? TextAlign.center : TextAlign.start,
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                const SizedBox(height: 5),
+                Text(
+                  description,
+                  textAlign: compact ? TextAlign.center : TextAlign.start,
+                ),
+              ],
+            );
+            if (compact) {
+              return Column(
                 children: [
-                  Text(title, style: Theme.of(context).textTheme.titleLarge),
-                  const SizedBox(height: 5),
-                  Text(description),
+                  CircleAvatar(radius: 34, child: Icon(icon, size: 34)),
+                  const SizedBox(height: 14),
+                  details,
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton(
+                      onPressed: onPressed,
+                      child: Text(buttonLabel),
+                    ),
+                  ),
                 ],
-              ),
-            ),
-            const SizedBox(width: 14),
-            FilledButton(onPressed: onPressed, child: Text(buttonLabel)),
-          ],
+              );
+            }
+            return Row(
+              children: [
+                CircleAvatar(radius: 34, child: Icon(icon, size: 34)),
+                const SizedBox(width: 18),
+                Expanded(child: details),
+                const SizedBox(width: 14),
+                FilledButton(onPressed: onPressed, child: Text(buttonLabel)),
+              ],
+            );
+          },
         ),
       ),
     );

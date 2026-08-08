@@ -8,6 +8,15 @@ import '../protocol/protocol_envelope.dart';
 import '../security/private_address.dart';
 import 'sequence_tracker.dart';
 
+final class LanJoinException implements Exception {
+  const LanJoinException(this.code);
+
+  final String code;
+
+  @override
+  String toString() => 'LanJoinException($code)';
+}
+
 final class LanSessionClient {
   final Stopwatch _clock = Stopwatch()..start();
   final SequenceTracker _hostSequences = SequenceTracker();
@@ -50,22 +59,55 @@ final class LanSessionClient {
     )) {
       throw StateError('Only private or loopback LAN addresses are allowed.');
     }
+    await disconnectTransport();
+    _hostSequences.resetFromSnapshot(0);
+    _sequence = 0;
+    _resumeToken = null;
     _sessionId = sessionId;
     _playerId = playerId;
     _address = address;
     _port = port;
-    await _openSocket(address, port);
-    send(
-      ProtocolTypes.lobbyJoin,
-      {
-        'sessionCode': sessionCode,
-        'joinToken': joinToken,
-        'displayName': displayName,
+
+    final acknowledgement = Completer<void>();
+    late final StreamSubscription<ProtocolEnvelope> acknowledgementSubscription;
+    acknowledgementSubscription = messages.listen(
+      (message) {
+        if (message.type == ProtocolTypes.lobbyJoined &&
+            !acknowledgement.isCompleted) {
+          acknowledgement.complete();
+        } else if (message.type == ProtocolTypes.error &&
+            !acknowledgement.isCompleted) {
+          acknowledgement.completeError(
+            LanJoinException(message.payload['code']?.toString() ?? 'unknown'),
+          );
+        }
+      },
+      onError: (Object error, StackTrace stack) {
+        if (!acknowledgement.isCompleted) {
+          acknowledgement.completeError(error, stack);
+        }
       },
     );
-    _startHeartbeat();
-  }
 
+    try {
+      await _openSocket(address, port);
+      send(
+        ProtocolTypes.lobbyJoin,
+        {
+          'sessionCode': sessionCode,
+          'joinToken': joinToken,
+          'displayName': displayName,
+        },
+      );
+      _startHeartbeat();
+      await acknowledgement.future.timeout(const Duration(seconds: 6));
+    } on Object {
+      await disconnectTransport();
+      rethrow;
+    } finally {
+      await acknowledgementSubscription.cancel();
+    }
+  }
 
   Future<void> reconnect() async {
     final address = _address;
@@ -80,20 +122,53 @@ final class LanSessionClient {
         token == null) {
       throw StateError('No resumable LAN session is available.');
     }
-    await disconnectTransport();
-    await _openSocket(address, port);
-    send(
-      ProtocolTypes.reconnect,
-      {
-        'resumeToken': token,
-        'lastHostSequence': _hostSequences.last,
+
+    final acknowledgement = Completer<void>();
+    late final StreamSubscription<ProtocolEnvelope> acknowledgementSubscription;
+    acknowledgementSubscription = messages.listen(
+      (message) {
+        if (message.type == ProtocolTypes.reconnected &&
+            !acknowledgement.isCompleted) {
+          acknowledgement.complete();
+        } else if (message.type == ProtocolTypes.error &&
+            !acknowledgement.isCompleted) {
+          acknowledgement.completeError(
+            LanJoinException(message.payload['code']?.toString() ?? 'unknown'),
+          );
+        }
+      },
+      onError: (Object error, StackTrace stack) {
+        if (!acknowledgement.isCompleted) {
+          acknowledgement.completeError(error, stack);
+        }
       },
     );
-    _startHeartbeat();
+
+    try {
+      await disconnectTransport();
+      await _openSocket(address, port);
+      send(
+        ProtocolTypes.reconnect,
+        {
+          'resumeToken': token,
+          'lastHostSequence': _hostSequences.last,
+        },
+      );
+      _startHeartbeat();
+      await acknowledgement.future.timeout(const Duration(seconds: 6));
+    } on Object {
+      await disconnectTransport();
+      rethrow;
+    } finally {
+      await acknowledgementSubscription.cancel();
+    }
   }
 
   Future<void> _openSocket(InternetAddress address, int port) async {
-    _socket = await WebSocket.connect('ws://${address.address}:$port/ws');
+    final host = address.type == InternetAddressType.IPv6
+        ? '[${address.address}]'
+        : address.address;
+    _socket = await WebSocket.connect('ws://$host:$port/ws');
     _socketSubscription = _socket!.listen(
       _handleIncoming,
       onError: (Object error, StackTrace stack) =>

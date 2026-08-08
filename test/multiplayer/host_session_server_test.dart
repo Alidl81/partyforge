@@ -79,4 +79,32 @@ void main() {
     await client.close();
     await server.close();
   });
+
+  test('invalid room credentials fail quickly with a friendly code', () async {
+    final server = HostSessionServer(logger: _SilentLogger());
+    final info = await server.start(address: InternetAddress.loopbackIPv4);
+    final client = LanSessionClient();
+
+    await expectLater(
+      client.connect(
+        address: InternetAddress.loopbackIPv4,
+        port: info.port,
+        sessionId: info.sessionId,
+        sessionCode: info.sessionCode,
+        joinToken: 'wrong-token',
+        playerId: 'invalid-player',
+        displayName: 'Invalid Player',
+      ),
+      throwsA(
+        isA<LanJoinException>().having(
+          (error) => error.code,
+          'code',
+          'join_denied',
+        ),
+      ),
+    );
+
+    await client.close();
+    await server.close();
+  });
 }
