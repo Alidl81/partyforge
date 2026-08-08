@@ -47,8 +47,7 @@ abstract final class RoomGameStartRules {
     required int connectedClients,
   }) {
     final participantCount = connectedClients + 1;
-    final requiredMinimum =
-        game.minimumPlayers < 2 ? 2 : game.minimumPlayers;
+    final requiredMinimum = game.minimumPlayers < 2 ? 2 : game.minimumPlayers;
 
     final status = participantCount < requiredMinimum
         ? RoomGameStartStatus.tooFewPlayers

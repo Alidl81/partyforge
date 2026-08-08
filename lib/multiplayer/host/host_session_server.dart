@@ -84,6 +84,8 @@ final class HostSessionServer {
   List<Map<String, Object?>> get currentLobbyPlayers => _lobbyPlayers();
 
   int get playerCount => _socketPlayers.values.toSet().length;
+
+
   void announceGameStart(String gameId) {
     if (_server == null || _closed) {
       throw StateError('Host session is not active.');

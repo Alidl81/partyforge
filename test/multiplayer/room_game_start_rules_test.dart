@@ -3,8 +3,8 @@ import 'package:partyforge/games/catalog/game_definition.dart';
 import 'package:partyforge/multiplayer/host/room_game_start_rules.dart';
 
 void main() {
-  const singlePlayerGame = GameDefinition(
-    id: 'test-single',
+  const twoPlayerRoomGame = GameDefinition(
+    id: 'test-two',
     title: 'Test',
     shortDescription: 'Test',
     description: 'Test',
@@ -35,7 +35,7 @@ void main() {
 
   test('hosted rooms require at least two participants', () {
     final check = RoomGameStartRules.check(
-      game: singlePlayerGame,
+      game: twoPlayerRoomGame,
       connectedClients: 0,
     );
 
@@ -47,7 +47,7 @@ void main() {
 
   test('host is counted as one participant', () {
     final check = RoomGameStartRules.check(
-      game: singlePlayerGame,
+      game: twoPlayerRoomGame,
       connectedClients: 1,
     );
 

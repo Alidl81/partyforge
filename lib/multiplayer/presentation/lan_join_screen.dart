@@ -180,23 +180,20 @@ class _LanJoinScreenState extends State<LanJoinScreen> {
 
         if (game == null || !game.playRoute.startsWith('/games/')) {
           setState(() {
-            _status = 'میزبان بازی‌ای را شروع کرد که این نسخه صفحهٔ اجرای آن را ندارد.';
+            _status =
+                'میزبان بازی‌ای را شروع کرد که این نسخه صفحهٔ اجرای آن را ندارد.';
           });
           break;
         }
 
         if (_activeGameId != null) break;
         _activeGameId = game.id;
-
-        setState(() {
-          _status = 'میزبان «${game.title}» را شروع کرد…';
-        });
+        setState(() => _status = 'میزبان «${game.title}» را شروع کرد…');
 
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (!mounted || _activeGameId != game.id) return;
-
           unawaited(
-            context.push<void>(game.playRoute).then<void>((_) {
+            context.push<Object?>(game.playRoute).then<void>((_) {
               if (!mounted || _activeGameId != game.id) return;
               setState(() {
                 _activeGameId = null;
@@ -244,9 +241,7 @@ class _LanJoinScreenState extends State<LanJoinScreen> {
     }
 
     if (room == null) {
-      setState(() {
-        _status = 'اتاقی با این کد روی شبکه پیدا نشد.';
-      });
+      setState(() => _status = 'اتاقی با این کد روی شبکه پیدا نشد.');
       return;
     }
 
@@ -506,26 +501,23 @@ class _ConnectedRoomCard extends StatelessWidget {
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: 8),
-            if (connectedPlayers.isEmpty)
-              const Text('در انتظار دریافت فهرست بازیکن‌ها…')
-            else
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  const Chip(
-                    avatar: Icon(Icons.star_rounded, size: 18),
-                    label: Text('میزبان'),
-                  ),
-                  for (final player in connectedPlayers)
-                    Chip(
-                      avatar: const Icon(Icons.person_rounded, size: 18),
-                      label: Text(
-                        player['displayName']?.toString() ?? 'بازیکن',
-                      ),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                const Chip(
+                  avatar: Icon(Icons.star_rounded, size: 18),
+                  label: Text('میزبان'),
+                ),
+                for (final player in connectedPlayers)
+                  Chip(
+                    avatar: const Icon(Icons.person_rounded, size: 18),
+                    label: Text(
+                      player['displayName']?.toString() ?? 'بازیکن',
                     ),
-                ],
-              ),
+                  ),
+              ],
+            ),
             const SizedBox(height: 18),
             OutlinedButton.icon(
               onPressed: onReconnect,

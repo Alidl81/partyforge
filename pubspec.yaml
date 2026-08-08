@@ -1,7 +1,7 @@
 name: partyforge
 description: Deterministic offline and LAN party games for Android and Windows.
 publish_to: none
-version: 0.3.0+3
+version: 0.4.0+4
 
 environment:
   sdk: '>=3.12.0 <4.0.0'
@@ -13,7 +13,7 @@ dependencies:
   flutter_localizations:
     sdk: flutter
   collection: ^1.19.1
-  drift: ^2.34.3
+  drift: 2.34.3
   flame: ^1.38.0
   flame_audio: ^2.12.2
   flutter_riverpod: ^3.4.1
@@ -31,11 +31,11 @@ dev_dependencies:
     sdk: flutter
   integration_test:
     sdk: flutter
-  build_runner: ^2.6.0
-  drift_dev: ^2.34.0
+  build_runner: 2.15.1
+  drift_dev: 2.34.0
   flutter_lints: ^6.0.0
-  freezed: ^3.2.5
-  json_serializable: ^6.14.0
+  freezed: 3.2.5
+  json_serializable: 6.14.0
   mocktail: ^1.0.4
 
 flutter:

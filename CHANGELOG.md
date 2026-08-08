@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.4.0+4
+
+- Consolidated on the last Android/Windows green release baseline.
+- Host now stays in an active room and sees the playable game catalog.
+- Room code and connected player count remain visible at the top.
+- Hosted games use a single «شروع بازی» action.
+- Minimum/maximum player counts are checked before start.
+- Host broadcasts `game.start`; joined clients open the same playable game automatically.
+- Returning from a game preserves the LAN room connection.
+- Added player-count and game-start broadcast tests.
+- Removed temporary patch payloads and install helpers from the source tree.
+- Pinned sensitive code-generation dependencies used by the green build baseline.
+
 ## 0.3.0+3
 
 - Replaced the six-field LAN join form with automatic nearby-room discovery.

@@ -107,4 +107,33 @@ void main() {
     await client.close();
     await server.close();
   });
+
+  test('host broadcasts selected game to joined clients', () async {
+    final server = HostSessionServer(logger: _SilentLogger());
+    final info = await server.start(address: InternetAddress.loopbackIPv4);
+    final client = LanSessionClient();
+
+    await client.connect(
+      address: InternetAddress.loopbackIPv4,
+      port: info.port,
+      sessionId: info.sessionId,
+      sessionCode: info.sessionCode,
+      joinToken: info.joinToken.value,
+      playerId: 'player-game-start',
+      displayName: 'Game Start Player',
+    );
+
+    final started = client.messages
+        .firstWhere((message) => message.type == ProtocolTypes.gameStart)
+        .timeout(const Duration(seconds: 3));
+
+    server.announceGameStart('chrono-lock');
+    final message = await started;
+
+    expect(message.payload['gameId'], 'chrono-lock');
+
+    await client.close();
+    await server.close();
+  });
+
 }

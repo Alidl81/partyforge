@@ -24,6 +24,7 @@ class _LanHostScreenState extends ConsumerState<LanHostScreen> {
   Future<HostSessionInfo>? _startup;
   StreamSubscription<List<Map<String, Object?>>>? _lobbySubscription;
   List<Map<String, Object?>> _players = const [];
+  bool _startingGame = false;
 
   @override
   void didChangeDependencies() {
@@ -41,13 +42,11 @@ class _LanHostScreenState extends ConsumerState<LanHostScreen> {
 
     final info = await server.start(address: InternetAddress.anyIPv4);
     _players = server.currentLobbyPlayers;
-
     _lobbySubscription = server.lobbyChanges.listen((players) {
       if (mounted) {
         setState(() => _players = players);
       }
     });
-
     return info;
   }
 
@@ -68,6 +67,7 @@ class _LanHostScreenState extends ConsumerState<LanHostScreen> {
       _players.where((player) => player['connected'] == true).length;
 
   Future<void> _startGame(GameDefinition game) async {
+    if (_startingGame) return;
     final server = _server;
     if (server == null) return;
 
@@ -87,18 +87,24 @@ class _LanHostScreenState extends ConsumerState<LanHostScreen> {
       return;
     }
 
-    server.announceGameStart(game.id);
+    setState(() => _startingGame = true);
+    try {
+      server.announceGameStart(game.id);
+      if (!mounted) return;
 
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('«${game.title}» برای همه شروع شد.'),
-        behavior: SnackBarBehavior.floating,
-        duration: const Duration(seconds: 2),
-      ),
-    );
-
-    await context.push<void>(game.playRoute);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('«${game.title}» برای همه شروع شد.'),
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+      await context.push<Object?>(game.playRoute);
+    } finally {
+      if (mounted) {
+        setState(() => _startingGame = false);
+      }
+    }
   }
 
   @override
@@ -148,13 +154,14 @@ class _LanHostScreenState extends ConsumerState<LanHostScreen> {
               ),
               const SizedBox(height: 6),
               const Text(
-                'وقتی «شروع بازی» را بزنی، تعداد بازیکن‌ها بررسی می‌شود و در صورت کافی بودن، همان بازی روی دستگاه‌های متصل باز می‌شود.',
+                'با زدن «شروع بازی»، تعداد بازیکن‌ها بررسی می‌شود. اگر تعداد کافی باشد، همان بازی روی دستگاه‌های متصل هم باز می‌شود.',
               ),
               const SizedBox(height: 16),
               for (final game in games) ...[
                 _HostedGameCard(
                   game: game,
                   connectedClients: _connectedClientCount,
+                  starting: _startingGame,
                   onInfo: () => context.push('/play/${game.id}/info'),
                   onStart: () => unawaited(_startGame(game)),
                 ),
@@ -266,12 +273,14 @@ class _HostedGameCard extends StatelessWidget {
   const _HostedGameCard({
     required this.game,
     required this.connectedClients,
+    required this.starting,
     required this.onInfo,
     required this.onStart,
   });
 
   final GameDefinition game;
   final int connectedClients;
+  final bool starting;
   final VoidCallback onInfo;
   final VoidCallback onStart;
 
@@ -342,9 +351,7 @@ class _HostedGameCard extends StatelessWidget {
                         size: 18,
                       ),
                       label: Text(
-                        check.allowed
-                            ? 'آمادهٔ شروع'
-                            : check.shortMessage,
+                        check.allowed ? 'آمادهٔ شروع' : check.shortMessage,
                       ),
                     ),
                   ],
@@ -354,7 +361,7 @@ class _HostedGameCard extends StatelessWidget {
                   children: [
                     Expanded(
                       child: OutlinedButton.icon(
-                        onPressed: onInfo,
+                        onPressed: starting ? null : onInfo,
                         icon: const Icon(Icons.info_outline_rounded),
                         label: const Text('اطلاعات'),
                       ),
@@ -362,7 +369,7 @@ class _HostedGameCard extends StatelessWidget {
                     const SizedBox(width: 10),
                     Expanded(
                       child: FilledButton.icon(
-                        onPressed: onStart,
+                        onPressed: starting ? null : onStart,
                         icon: const Icon(Icons.play_arrow_rounded),
                         label: const Text('شروع بازی'),
                       ),
