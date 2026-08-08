@@ -7,8 +7,8 @@ import 'lan_room.dart';
 
 final class LanRoomBroadcaster {
   LanRoomBroadcaster({
-    required LanRoom Function(InternetAddress address) room,
-  }) : _room = room;
+    required this._room,
+  });
 
   final LanRoom Function(InternetAddress address) _room;
   RawDatagramSocket? _socket;
