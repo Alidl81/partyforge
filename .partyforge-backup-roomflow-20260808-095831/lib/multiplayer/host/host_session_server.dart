@@ -84,18 +84,6 @@ final class HostSessionServer {
   List<Map<String, Object?>> get currentLobbyPlayers => _lobbyPlayers();
 
   int get playerCount => _socketPlayers.values.toSet().length;
-  void announceGameStart(String gameId) {
-    if (_server == null || _closed) {
-      throw StateError('Host session is not active.');
-    }
-    if (gameId.trim().isEmpty) {
-      throw ArgumentError.value(gameId, 'gameId', 'Game id cannot be empty.');
-    }
-    _broadcast(
-      ProtocolTypes.gameStart,
-      <String, Object?>{'gameId': gameId},
-    );
-  }
 
   Future<HostSessionInfo> start({InternetAddress? address}) async {
     if (_server != null) throw StateError('Server already started.');
